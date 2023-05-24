@@ -1,0 +1,96 @@
+// Create the submit button
+const submitButton = document.createElement("button");
+submitButton.innerText = "Submit File";
+submitButton.style.backgroundColor = "green";
+submitButton.style.color = "white";
+submitButton.style.padding = "5px";
+submitButton.style.border = "none";
+submitButton.style.borderRadius = "5px";
+submitButton.style.margin = "5px";
+
+// Create the progress element
+const progressElement = document.createElement("progress");
+progressElement.style.width = "99%";
+progressElement.style.height = "5px";
+progressElement.style.backgroundColor = "grey";
+
+// Create the progress bar inside the progress element
+const progressBar = document.createElement("div");
+progressBar.style.width = "0%";
+progressBar.style.height = "100%";
+progressBar.style.backgroundColor = "blue";
+
+// Append the progress bar to the progress element
+progressElement.appendChild(progressBar);
+
+// Find the target element to insert before
+const targetElement = document.querySelector(".flex.flex-col.w-full.py-2.flex-grow.md\\:py-3.md\\:pl-4");
+
+// Insert the submit button and progress element before the target element
+targetElement.parentNode.insertBefore(submitButton, targetElement);
+targetElement.parentNode.insertBefore(progressElement, targetElement);
+
+// Add event listener for file submission
+submitButton.addEventListener("click", async () => {
+  // Create the file input element
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = ".txt,.js,.py,.html,.css,.json,.csv,.pdf";
+
+  // Hide the file input element
+  fileInput.style.display = "none";
+
+  // Append the file input element to the document body
+  document.body.appendChild(fileInput);
+
+  // Simulate click event to trigger file selection
+  fileInput.click();
+
+  // Handle file selection
+  fileInput.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    const filename = file.name;
+
+    // Read file as text
+    const text = await file.text();
+
+    // Split the text into chunks of size 15000
+    const chunkSize = 15000;
+    const numChunks = Math.ceil(text.length / chunkSize);
+
+    // Submit each chunk into the conversation
+    for (let i = 0; i < numChunks; i++) {
+      const start = i * chunkSize;
+      const end = start + chunkSize;
+      const chunk = text.substring(start, end);
+
+      // Update progress bar
+      progressBar.style.width = `${((i + 1) / numChunks) * 100}%`;
+
+      // Submit chunk to the conversation
+      await submitConversation(chunk, i + 1, filename);
+    }
+
+    // Set progress bar to blue when all chunks have been submitted
+    progressBar.style.backgroundColor = "blue";
+  });
+});
+
+// Function to submit a conversation chunk
+async function submitConversation(text, part, filename) {
+  const textarea = document.querySelector("textarea[tabindex='0']");
+  const enterKeyEvent = new KeyboardEvent("keydown", {
+    bubbles: true,
+    cancelable: true,
+    keyCode: 13,
+  });
+  textarea.value = `Part ${part} of ${filename}:\n\n${text}`;
+  textarea.dispatchEvent(enterKeyEvent);
+
+  // Check if chatgpt is ready
+  let chatgptReady = false;
+  while (!chatgptReady) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    chatgptReady = !document.querySelector(".text-2xl > span:not(.invisible)");
+  }
+}
